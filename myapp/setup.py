@@ -8,7 +8,7 @@ import os
 import django
 
 # Set up Django environment
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myapp.settings')
 django.setup()
 
 from django.contrib.auth import get_user_model

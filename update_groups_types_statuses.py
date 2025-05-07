@@ -15,7 +15,7 @@ myapp_path = Path(__file__).resolve().parent / "myapp"
 sys.path.append(str(myapp_path.parent))
 
 import django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myapp.config.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myapp.myapp.settings')
 django.setup()
 
 def main():

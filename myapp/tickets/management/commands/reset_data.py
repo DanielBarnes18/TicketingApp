@@ -46,7 +46,7 @@ class Command(BaseCommand):
         try:
             # We need to set up Django environment
             import django
-            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'myapp.settings')
             django.setup()
             
             # Import the setup functions
