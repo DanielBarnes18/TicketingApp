@@ -1,0 +1,372 @@
+{% extends 'base.html' %}
+
+{% block title %}Kanban Board - Ticketing System{% endblock %}
+
+{% block extra_css %}
+<style>
+    .kanban-container {
+        display: flex;
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 1rem;
+        min-height: calc(100vh - 200px);
+        position: relative;
+    }
+    
+    .kanban-column {
+        flex: 0 0 300px;
+        margin-right: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 0.25rem;
+        display: flex;
+        flex-direction: column;
+        max-height: 100%;
+    }
+    
+    .kanban-column-header {
+        padding: 0.75rem;
+        font-weight: bold;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .kanban-column-body {
+        padding: 0.5rem;
+        flex: 1;
+        overflow-y: auto;
+    }
+    
+    .ticket-card {
+        background-color: white;
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        margin-bottom: 0.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        cursor: pointer;
+    }
+    
+    .ticket-card:hover {
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .ticket-card.is-dragging {
+        opacity: 0.5;
+    }
+
+    .ticket-title {
+        font-weight: bold;
+        margin-bottom: 0.5rem;
+    }
+    
+    .ticket-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.8rem;
+        color: #6c757d;
+    }
+    
+    .column-badge {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.25rem;
+        color: white;
+        font-size: 0.8rem;
+    }
+    
+    .kanban-no-tickets-message {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+        min-width: 350px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Kanban Board</h1>
+    <div>
+        <a href="{% url 'ticket-list' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-list me-2"></i> List View
+        </a>
+        <a href="{% url 'ticket-create' %}" class="btn btn-success">
+            <i class="fas fa-plus me-2"></i> Create Ticket
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-body p-3">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" placeholder="Search tickets..." value="{{ request.GET.search|default:'' }}">
+                    <button class="btn btn-outline-secondary" type="submit">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <select name="type" class="form-select">
+                    <option value="">All Types</option>
+                    {% for type in ticket_types %}
+                    <option value="{{ type.id }}" {% if request.GET.type == type.id|stringformat:"i" %}selected{% endif %}>{{ type.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="priority" class="form-select">
+                    <option value="">All Priorities</option>
+                    {% for priority in ticket_priorities %}
+                    <option value="{{ priority.id }}" {% if request.GET.priority == priority.id|stringformat:"i" %}selected{% endif %}>{{ priority.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for category in ticket_categories %}
+                    <option value="{{ category.id }}" {% if request.GET.category == category.id|stringformat:"i" %}selected{% endif %}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <select name="requestor" class="form-select">
+                    <option value="">All Requestors</option>
+                    {% for requestor in ticket_requestors %}
+                    <option value="{{ requestor.id }}" {% if request.GET.requestor == requestor.id|stringformat:"i" %}selected{% endif %}>{{ requestor.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-primary w-100">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- React App Mount Point -->
+<div id="kanban-board-app" 
+    data-tickets="{{ tickets_json }}" 
+    data-statuses="{{ statuses_json }}"
+    data-csrf-token="{{ csrf_token }}">
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- React and React-DOM scripts -->
+<script src="https://unpkg.com/react@17/umd/react.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" crossorigin></script>
+<script src="https://unpkg.com/react-dnd@14.0.2/dist/umd/ReactDnD.js" crossorigin></script>
+<script src="https://unpkg.com/react-dnd-html5-backend@14.0.0/dist/umd/ReactDnDHTML5Backend.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<script type="text/babel">
+{% verbatim %}
+    const { useState, useEffect } = React;
+    const { DndProvider, useDrag, useDrop } = ReactDnD;
+    const HTML5Backend = ReactDnDHTML5Backend.HTML5Backend;
+    
+    // Define ItemTypes
+    const ItemTypes = {
+        TICKET: 'ticket'
+    };
+    
+    // Ticket Component (Draggable)
+    const Ticket = ({ ticket, index }) => {
+        const [{ isDragging }, drag] = useDrag(() => ({
+            type: ItemTypes.TICKET,
+            item: { id: ticket.id, status_id: ticket.status.id },
+            collect: (monitor) => ({
+                isDragging: !!monitor.isDragging()
+            })
+        }));
+        
+        const handleClick = (e) => {
+            // If we're dragging, don't navigate
+            if (isDragging) return;
+            
+            // Navigate to ticket detail page
+            window.location.href = `/tickets/${ticket.id}/`;
+        };
+        
+        return (
+            <div 
+                ref={drag}
+                className={`ticket-card ${isDragging ? 'is-dragging' : ''}`}
+                style={{ opacity: isDragging ? 0.5 : 1 }}
+                onClick={handleClick}
+            >
+                <div className="ticket-title">
+                    #{ticket.id} {ticket.title}
+                </div>
+                <div className="ticket-meta">
+                    <div>
+                        {ticket.priority && (
+                            <span className="badge me-1" style={{ backgroundColor: ticket.priority.color }}>
+                                {ticket.priority.name}
+                            </span>
+                        )}
+                        {ticket.type && (
+                            <span className="badge bg-secondary me-1">
+                                {ticket.type.name}
+                            </span>
+                        )}
+                        {ticket.category && (
+                            <span className="badge bg-primary me-1">
+                                {ticket.category.name}
+                            </span>
+                        )}
+                    </div>
+                    <div>
+                        {ticket.assigned_to ? ticket.assigned_to.username : 'Unassigned'}
+                        {ticket.requestor && <small className="d-block text-muted">From: {ticket.requestor.name}</small>}
+                    </div>
+                </div>
+            </div>
+        );
+    };
+    
+    // Column Component (Droppable)
+    const Column = ({ status, tickets, onTicketDrop }) => {
+        const [{ isOver, canDrop }, drop] = useDrop(() => ({
+            accept: ItemTypes.TICKET,
+            drop: (item) => onTicketDrop(item.id, status.id),
+            collect: (monitor) => ({
+                isOver: !!monitor.isOver(),
+                canDrop: !!monitor.canDrop()
+            })
+        }), [status.id]);
+        
+        const columnTickets = tickets.filter(ticket => ticket.status && ticket.status.id === status.id);
+        
+        return (
+            <div className="kanban-column">
+                <div className="kanban-column-header" style={{ borderBottom: `2px solid ${status.color}` }}>
+                    <span>
+                        <span className="column-badge" style={{ backgroundColor: status.color }}>
+                            {columnTickets.length}
+                        </span>
+                        <span className="ms-2">{status.name}</span>
+                    </span>
+                </div>
+                <div 
+                    ref={drop} 
+                    className="kanban-column-body"
+                    style={{ 
+                        backgroundColor: isOver ? 'rgba(0,0,0,0.05)' : 'transparent',
+                        transition: 'background-color 0.2s'
+                    }}
+                >
+                    {columnTickets.map((ticket, index) => (
+                        <Ticket 
+                            key={ticket.id} 
+                            ticket={ticket} 
+                            index={index}
+                        />
+                    ))}
+                    {columnTickets.length === 0 && (
+                        <div className="text-center text-muted p-3">
+                            <p>No tickets</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        );
+    };
+    
+    // Kanban Board App
+    const KanbanBoard = () => {
+        const appElement = document.getElementById('kanban-board-app');
+        const initialTickets = JSON.parse(appElement.dataset.tickets || '[]');
+        const statuses = JSON.parse(appElement.dataset.statuses || '[]');
+        const csrfToken = appElement.dataset.csrfToken;
+        
+        console.log("Tickets:", initialTickets);
+        console.log("Statuses:", statuses);
+        
+        const [tickets, setTickets] = useState(initialTickets);
+        
+        const handleTicketDrop = async (ticketId, newStatusId) => {
+            // Find the ticket in the current state
+            const ticket = tickets.find(t => t.id === ticketId);
+            
+            // If the status hasn't changed, do nothing
+            if (ticket.status.id === newStatusId) return;
+            
+            try {
+                // Make API call to update the ticket status - using the full URL path
+                const response = await fetch(`/tickets/${ticketId}/status/${newStatusId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    // Update local state
+                    const updatedTickets = tickets.map(t => {
+                        if (t.id === ticketId) {
+                            const newStatus = statuses.find(s => s.id === newStatusId);
+                            return { 
+                                ...t, 
+                                status: newStatus 
+                            };
+                        }
+                        return t;
+                    });
+                    
+                    setTickets(updatedTickets);
+                } else {
+                    console.error('Failed to update ticket status');
+                }
+            } catch (error) {
+                console.error('Error updating ticket status:', error);
+            }
+        };
+        
+        return (
+            <DndProvider backend={HTML5Backend}>
+                <div className="kanban-container">
+                    {statuses.length > 0 ? (
+                        statuses.map(status => (
+                            <Column 
+                                key={status.id}
+                                status={status} 
+                                tickets={tickets}
+                                onTicketDrop={handleTicketDrop}
+                            />
+                        ))
+                    ) : (
+                        <div className="alert alert-info w-100 text-center">
+                            <p>No status columns are available. Please contact your administrator.</p>
+                        </div>
+                    )}
+                    {statuses.length > 0 && tickets.length === 0 && (
+                        <div className="alert alert-info kanban-no-tickets-message">
+                            <h4 className="alert-heading">No tickets found!</h4>
+                            <p>There are no tickets matching your filters, or no tickets have been created yet.</p>
+                            <div className="text-center mt-3">
+                                <a href="{% url 'ticket-create' %}" className="btn btn-success">
+                                    <i className="fas fa-plus me-2"></i> Create Ticket
+                                </a>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </DndProvider>
+        );
+    };
+    
+    // Render the app
+    ReactDOM.render(<KanbanBoard />, document.getElementById('kanban-board-app'));
+{% endverbatim %}
+</script>
+{% endblock %} 

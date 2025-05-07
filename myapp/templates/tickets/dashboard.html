@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Ticketing System{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Dashboard</h1>
+
+<p>Welcome to the MASUD funnel - where all your ticketing dreams come true...</p>
+<p>Jira? I hardly know her!</p>
+
+
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Assigned to Me</h5>
+                <h2 class="display-4">{{ total_assigned }}</h2>
+                <div class="mt-3">
+                    {% for status_name, count in status_counts.assigned.items %}
+                    {% if count > 0 %}
+                    <span class="badge bg-primary me-2">{{ status_name }}: {{ count }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'ticket-list' %}?assigned_to_me=true" class="btn btn-sm btn-outline-primary">View All</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Assigned to My Groups</h5>
+                <h2 class="display-4">{{ total_group }}</h2>
+                <div class="mt-3">
+                    {% for status_name, count in status_counts.group.items %}
+                    {% if count > 0 %}
+                    <span class="badge bg-secondary me-2">{{ status_name }}: {{ count }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'ticket-list' %}?assigned_group=my" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title">Created by Me</h5>
+                <h2 class="display-4">{{ total_created }}</h2>
+                <div class="mt-3">
+                    {% for status_name, count in status_counts.created.items %}
+                    {% if count > 0 %}
+                    <span class="badge bg-info me-2">{{ status_name }}: {{ count }}</span>
+                    {% endif %}
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer">
+                <a href="{% url 'ticket-list' %}?created_by_me=true" class="btn btn-sm btn-outline-info">View All</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">My Assigned Tickets</h5>
+                <a href="{% url 'ticket-list' %}?assigned_to_me=true" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if assigned_tickets %}
+                <div class="list-group list-group-flush">
+                    {% for ticket in assigned_tickets %}
+                    <a href="{% url 'ticket-detail' ticket.pk %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                {% if ticket.status %}
+                                <span class="ticket-status" style="background-color: {{ ticket.status.color }};"></span>
+                                {% endif %}
+                                {{ ticket.title }}
+                            </h6>
+                            <small>{{ ticket.updated_at|date:"M d, Y" }}</small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>Created by: {{ ticket.created_by.username }}</small>
+                            {% if ticket.priority %}
+                            <small class="ticket-priority" style="color: {{ ticket.priority.color }};">{{ ticket.priority.name }}</small>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info m-3">No tickets are currently assigned to you. Lucky you!</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Group Tickets</h5>
+                <a href="{% url 'ticket-list' %}?assigned_group=my" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if group_tickets %}
+                <div class="list-group list-group-flush">
+                    {% for ticket in group_tickets %}
+                    <a href="{% url 'ticket-detail' ticket.pk %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                {% if ticket.status %}
+                                <span class="ticket-status" style="background-color: {{ ticket.status.color }};"></span>
+                                {% endif %}
+                                {{ ticket.title }}
+                            </h6>
+                            <small>{{ ticket.updated_at|date:"M d, Y" }}</small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>Assigned to: {{ ticket.assigned_group.name }}</small>
+                            {% if ticket.priority %}
+                            <small class="ticket-priority" style="color: {{ ticket.priority.color }};">{{ ticket.priority.name }}</small>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info m-3">No tickets are currently assigned to your groups. Lucky you!</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow-sm">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Recently Created Tickets</h5>
+                <a href="{% url 'ticket-list' %}?created_by_me=true" class="btn btn-sm btn-primary">View All</a>
+            </div>
+            <div class="card-body p-0">
+                {% if created_tickets %}
+                <div class="list-group list-group-flush">
+                    {% for ticket in created_tickets %}
+                    <a href="{% url 'ticket-detail' ticket.pk %}" class="list-group-item list-group-item-action">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">
+                                {% if ticket.status %}
+                                <span class="ticket-status" style="background-color: {{ ticket.status.color }};"></span>
+                                {% endif %}
+                                {{ ticket.title }}
+                            </h6>
+                            <small>{{ ticket.updated_at|date:"M d, Y" }}</small>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <small>
+                                {% if ticket.assigned_to %}
+                                Assigned to: {{ ticket.assigned_to.username }}
+                                {% elif ticket.assigned_group %}
+                                Assigned to: {{ ticket.assigned_group.name }}
+                                {% else %}
+                                Unassigned
+                                {% endif %}
+                            </small>
+                            {% if ticket.priority %}
+                            <small class="ticket-priority" style="color: {{ ticket.priority.color }};">{{ ticket.priority.name }}</small>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="alert alert-info m-3">You haven't created any tickets yet. Why not?</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="text-center mt-4">
+    <a href="{% url 'ticket-create' %}" class="btn btn-success btn-lg">
+        <i class="fas fa-plus me-2"></i> Create New Ticket
+    </a>
+</div>
+{% endblock %} 

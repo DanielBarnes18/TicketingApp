@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+
+{% block title %}Tickets - Ticketing System{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Tickets</h1>
+    <div>
+        <a href="{% url 'ticket-kanban' %}" class="btn btn-primary me-2">
+            <i class="fas fa-columns me-2"></i> Kanban View
+        </a>
+        <a href="{% url 'ticket-create' %}" class="btn btn-success">
+            <i class="fas fa-plus me-2"></i> Create Ticket
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Filters Sidebar -->
+    <div class="col-md-3">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Filters</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" action="{% url 'ticket-list' %}">
+                    <div class="mb-3">
+                        <label for="search" class="form-label">Search</label>
+                        {{ filter_form.search }}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Status</label>
+                        <div class="ms-2">
+                            {% for choice in filter_form.status %}
+                            <div class="form-check">
+                                {{ choice.tag }}
+                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Priority</label>
+                        <div class="ms-2">
+                            {% for choice in filter_form.priority %}
+                            <div class="form-check">
+                                {{ choice.tag }}
+                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Type</label>
+                        <div class="ms-2">
+                            {% for choice in filter_form.type %}
+                            <div class="form-check">
+                                {{ choice.tag }}
+                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Category</label>
+                        <div class="ms-2">
+                            {% for choice in filter_form.category %}
+                            <div class="form-check">
+                                {{ choice.tag }}
+                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Requestor</label>
+                        <div class="ms-2">
+                            {% for choice in filter_form.requestor %}
+                            <div class="form-check">
+                                {{ choice.tag }}
+                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Assigned Group</label>
+                        <div class="ms-2">
+                            {% for choice in filter_form.assigned_group %}
+                            <div class="form-check">
+                                {{ choice.tag }}
+                                <label class="form-check-label" for="{{ choice.id_for_label }}">
+                                    {{ choice.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ filter_form.assigned_to_me }}
+                            <label class="form-check-label" for="{{ filter_form.assigned_to_me.id_for_label }}">
+                                Assigned to me
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ filter_form.created_by_me }}
+                            <label class="form-check-label" for="{{ filter_form.created_by_me.id_for_label }}">
+                                Created by me
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ filter_form.user_comments }}
+                            <label class="form-check-label" for="{{ filter_form.user_comments.id_for_label }}">
+                                With my comments
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <a href="{% url 'ticket-list' %}" class="btn btn-outline-secondary w-100">Clear Filters</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ticket List -->
+    <div class="col-md-9">
+        {% if tickets %}
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Title</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Type</th>
+                                <th>Category</th>
+                                <th>Requestor</th>
+                                <th>Assigned To</th>
+                                <th>Created By</th>
+                                <th>Updated</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in tickets %}
+                            <tr onclick="window.location='{% url 'ticket-detail' ticket.pk %}'" style="cursor: pointer;">
+                                <td>#{{ ticket.id }}</td>
+                                <td>{{ ticket.title }}</td>
+                                <td>
+                                    {% if ticket.status %}
+                                    <span class="badge" style="background-color: {{ ticket.status.color }};">{{ ticket.status.name }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Unset</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ticket.priority %}
+                                    <span class="badge" style="background-color: {{ ticket.priority.color }};">{{ ticket.priority.name }}</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary">Unset</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ticket.type %}
+                                    {{ ticket.type.name }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ticket.category %}
+                                    {{ ticket.category.name }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ticket.requestor %}
+                                    {{ ticket.requestor.name }}
+                                    {% else %}
+                                    -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if ticket.assigned_to %}
+                                    {{ ticket.assigned_to.username }}
+                                    {% elif ticket.assigned_group %}
+                                    {{ ticket.assigned_group.name }} (Group)
+                                    {% else %}
+                                    Unassigned
+                                    {% endif %}
+                                </td>
+                                <td>{{ ticket.created_by.username }}</td>
+                                <td>{{ ticket.updated_at|date:"M d, Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Ticket pagination" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page=1">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.previous_page_number }}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if num == page_obj.number %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.next_page_number }}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% for key, value in request.GET.items %}{% if key != 'page' %}{{ key }}={{ value }}&{% endif %}{% endfor %}page={{ page_obj.paginator.num_pages }}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="alert alert-info">
+            <h4 class="alert-heading">No tickets found!</h4>
+            <p>There are no tickets matching your filters. Try changing your filter criteria or create a new ticket.</p>
+            <hr>
+            <div class="text-center">
+                <a href="{% url 'ticket-create' %}" class="btn btn-success">
+                    <i class="fas fa-plus me-2"></i> Create Ticket
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Add Bootstrap form-control class to the search field
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('{{ filter_form.search.id_for_label }}');
+        if (searchInput) {
+            searchInput.classList.add('form-control');
+        }
+        
+        // Add form-check-input class to all checkboxes
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+        checkboxes.forEach(checkbox => {
+            checkbox.classList.add('form-check-input');
+        });
+    });
+</script>
+{% endblock %} 

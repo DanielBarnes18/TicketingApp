@@ -1,0 +1,202 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.id %}Edit Ticket{% else %}Create Ticket{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="card shadow-sm">
+        <div class="card-header">
+            <h4 class="mb-0">{% if form.instance.id %}Edit Ticket: {{ form.instance.title }}{% else %}Create New Ticket{% endif %}</h4>
+        </div>
+        <div class="card-body">
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="{{ form.title.id_for_label }}" class="form-label">{{ form.title.label }}{% if form.title.field.required %} *{% endif %}</label>
+                        <input type="text" class="form-control {% if form.title.errors %}is-invalid{% endif %}" 
+                               id="{{ form.title.id_for_label }}" name="{{ form.title.html_name }}"
+                               value="{{ form.title.value|default:'' }}" required>
+                        {% if form.title.errors %}
+                            <div class="invalid-feedback">{{ form.title.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">{{ form.description.label }}{% if form.description.field.required %} *{% endif %}</label>
+                        <textarea class="form-control {% if form.description.errors %}is-invalid{% endif %}" 
+                                  id="{{ form.description.id_for_label }}" name="{{ form.description.html_name }}"
+                                  rows="5" required>{{ form.description.value|default:'' }}</textarea>
+                        {% if form.description.errors %}
+                            <div class="invalid-feedback">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label for="{{ form.type.id_for_label }}" class="form-label">{{ form.type.label }}{% if form.type.field.required %} *{% endif %}</label>
+                        <select class="form-select {% if form.type.errors %}is-invalid{% endif %}" 
+                                id="{{ form.type.id_for_label }}" name="{{ form.type.html_name }}">
+                            {% for value, text in form.type.field.choices %}
+                                <option value="{{ value }}" {% if form.type.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.type.errors %}
+                            <div class="invalid-feedback">{{ form.type.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="{{ form.priority.id_for_label }}" class="form-label">{{ form.priority.label }}{% if form.priority.field.required %} *{% endif %}</label>
+                        <select class="form-select {% if form.priority.errors %}is-invalid{% endif %}" 
+                                id="{{ form.priority.id_for_label }}" name="{{ form.priority.html_name }}">
+                            {% for value, text in form.priority.field.choices %}
+                                <option value="{{ value }}" {% if form.priority.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.priority.errors %}
+                            <div class="invalid-feedback">{{ form.priority.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}{% if form.status.field.required %} *{% endif %}</label>
+                        <select class="form-select {% if form.status.errors %}is-invalid{% endif %}" 
+                                id="{{ form.status.id_for_label }}" name="{{ form.status.html_name }}">
+                            {% for value, text in form.status.field.choices %}
+                                <option value="{{ value }}" {% if form.status.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.status.errors %}
+                            <div class="invalid-feedback">{{ form.status.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.category.id_for_label }}" class="form-label">{{ form.category.label }}</label>
+                        <select class="form-select {% if form.category.errors %}is-invalid{% endif %}" 
+                                id="{{ form.category.id_for_label }}" name="{{ form.category.html_name }}">
+                            <option value="">---------</option>
+                            {% for value, text in form.category.field.choices %}
+                                <option value="{{ value }}" {% if form.category.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.category.errors %}
+                            <div class="invalid-feedback">{{ form.category.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="{{ form.requestor.id_for_label }}" class="form-label">{{ form.requestor.label }}</label>
+                        <select class="form-select {% if form.requestor.errors %}is-invalid{% endif %}" 
+                                id="{{ form.requestor.id_for_label }}" name="{{ form.requestor.html_name }}">
+                            <option value="">---------</option>
+                            {% for value, text in form.requestor.field.choices %}
+                                <option value="{{ value }}" {% if form.requestor.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.requestor.errors %}
+                            <div class="invalid-feedback">{{ form.requestor.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="{{ form.assigned_to.id_for_label }}" class="form-label">{{ form.assigned_to.label }}</label>
+                        <select class="form-select {% if form.assigned_to.errors %}is-invalid{% endif %}" 
+                                id="{{ form.assigned_to.id_for_label }}" name="{{ form.assigned_to.html_name }}">
+                            <option value="">---------</option>
+                            {% for value, text in form.assigned_to.field.choices %}
+                                <option value="{{ value }}" {% if form.assigned_to.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.assigned_to.errors %}
+                            <div class="invalid-feedback">{{ form.assigned_to.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <label for="{{ form.assigned_group.id_for_label }}" class="form-label">{{ form.assigned_group.label }}</label>
+                        <select class="form-select {% if form.assigned_group.errors %}is-invalid{% endif %}" 
+                                id="{{ form.assigned_group.id_for_label }}" name="{{ form.assigned_group.html_name }}">
+                            <option value="">---------</option>
+                            {% for value, text in form.assigned_group.field.choices %}
+                                <option value="{{ value }}" {% if form.assigned_group.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>{{ text }}</option>
+                            {% endfor %}
+                        </select>
+                        {% if form.assigned_group.errors %}
+                            <div class="invalid-feedback">{{ form.assigned_group.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label for="{{ form.key_stakeholders.id_for_label }}" class="form-label">{{ form.key_stakeholders.label }}</label>
+                        <textarea class="form-control {% if form.key_stakeholders.errors %}is-invalid{% endif %}" 
+                                  id="{{ form.key_stakeholders.id_for_label }}" name="{{ form.key_stakeholders.html_name }}"
+                                  rows="3">{{ form.key_stakeholders.value|default:'' }}</textarea>
+                        {% if form.key_stakeholders.errors %}
+                            <div class="invalid-feedback">{{ form.key_stakeholders.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <label for="{{ form.due_date.id_for_label }}" class="form-label">{{ form.due_date.label }}</label>
+                        <input type="date" class="form-control {% if form.due_date.errors %}is-invalid{% endif %}" 
+                               id="{{ form.due_date.id_for_label }}" name="{{ form.due_date.html_name }}"
+                               value="{{ form.due_date.value|date:'Y-m-d'|default:'' }}">
+                        {% if form.due_date.errors %}
+                            <div class="invalid-feedback">{{ form.due_date.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between">
+                    <a href="{% if form.instance.id %}{% url 'ticket-detail' form.instance.id %}{% else %}{% url 'ticket-list' %}{% endif %}" class="btn btn-outline-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        {% if form.instance.id %}Update Ticket{% else %}Create Ticket{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Enable Bootstrap form validation
+    (function () {
+        'use strict'
+        
+        // Fetch all the forms we want to apply custom Bootstrap validation styles to
+        var forms = document.querySelectorAll('.needs-validation')
+        
+        // Loop over them and prevent submission
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>
+{% endblock %} 

@@ -1,0 +1,427 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ ticket.title }} | Ticket #{{ ticket.id }}{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Ticket Detail -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <h3 class="mb-0">{{ ticket.title }}</h3>
+                <span class="badge bg-secondary">#{{ ticket.id }}</span>
+                <span class="badge status-badge" data-color="{{ ticket.status.color }}">{{ ticket.status }}</span>
+                <span class="badge priority-badge" data-color="{{ ticket.priority.color }}">{{ ticket.priority }}</span>
+                <span class="badge bg-info">{{ ticket.type }}</span>
+                {% if ticket.category %}
+                <span class="badge bg-primary">{{ ticket.category }}</span>
+                {% endif %}
+            </div>
+            <div>
+                {% if user.is_superuser or ticket.created_by == user or ticket.assigned_to == user or ticket.assigned_group in user.groups.all %}
+                <a href="{% url 'ticket-update' ticket.id %}" class="btn btn-primary btn-sm">
+                    <i class="bi bi-pencil"></i> Edit
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="mb-4">
+                        <h5>Description</h5>
+                        <div class="ticket-description p-3 bg-light">
+                            {{ ticket.description|linebreaks }}
+                        </div>
+                    </div>
+                    {% if ticket.key_stakeholders %}
+                    <div class="mb-4">
+                        <h5>Key Stakeholders</h5>
+                        <div class="ticket-stakeholders p-3 bg-light">
+                            {{ ticket.key_stakeholders|linebreaks }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="col-md-4">
+                    <h5>Details</h5>
+                    <table class="table table-sm">
+                        <tbody>
+                            <tr>
+                                <th>Created by</th>
+                                <td>{{ ticket.created_by.get_full_name|default:ticket.created_by.username }}</td>
+                            </tr>
+                            <tr>
+                                <th>Created on</th>
+                                <td>{{ ticket.created_at|date:"M d, Y, h:i a" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Last updated</th>
+                                <td>{{ ticket.updated_at|date:"M d, Y, h:i a" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Assigned to</th>
+                                <td>
+                                    {% if ticket.assigned_to %}
+                                        {{ ticket.assigned_to.get_full_name|default:ticket.assigned_to.username }}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Assigned group</th>
+                                <td>{{ ticket.assigned_group|default:"--" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Category</th>
+                                <td>{{ ticket.category|default:"--" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Requestor</th>
+                                <td>{{ ticket.requestor|default:"--" }}</td>
+                            </tr>
+                            <tr>
+                                <th>Due date</th>
+                                <td>
+                                    {% if ticket.due_date %}
+                                        {{ ticket.due_date|date:"M d, Y" }}
+                                        {% if ticket.is_overdue %}
+                                            <span class="badge bg-danger">Overdue</span>
+                                        {% endif %}
+                                    {% else %}
+                                        --
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Status Change -->
+            {% if user.is_superuser or ticket.created_by == user or ticket.assigned_to == user or ticket.assigned_group in user.groups.all %}
+            <div class="mt-3">
+                <h5>Change Status:</h5>
+                <div class="d-flex flex-wrap gap-2">
+                    {% for status in available_statuses %}
+                        <a href="{% url 'change-ticket-status' ticket.id status.id %}" 
+                           class="btn btn-sm status-button" data-color="{{ status.color }}">
+                            {{ status.name }}
+                        </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Attachments -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Attachments</h5>
+            <button class="btn btn-sm btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAttachmentForm">
+                <i class="bi bi-plus-circle"></i> Add Attachment
+            </button>
+        </div>
+        <div class="card-body">
+            <div class="collapse mb-3" id="collapseAttachmentForm">
+                <div class="card card-body bg-light">
+                    <form action="{% url 'add-attachment' ticket.id %}" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            {{ attachment_form.file.label_tag }}
+                            {{ attachment_form.file }}
+                            {% if attachment_form.file.errors %}
+                                <div class="invalid-feedback d-block">{{ attachment_form.file.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="mb-3">
+                            {{ attachment_form.description.label_tag }}
+                            {{ attachment_form.description }}
+                            {% if attachment_form.description.errors %}
+                                <div class="invalid-feedback d-block">{{ attachment_form.description.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload</button>
+                    </form>
+                </div>
+            </div>
+
+            {% if ticket.attachments.all %}
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>File</th>
+                                <th>Description</th>
+                                <th>Uploaded by</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for attachment in ticket.attachments.all %}
+                                <tr>
+                                    <td>
+                                        <a href="{{ attachment.file.url }}" target="_blank">
+                                            {{ attachment.file.name|cut:"ticket_attachments/"|truncatechars:30 }}
+                                        </a>
+                                    </td>
+                                    <td>{{ attachment.description|default:"-" }}</td>
+                                    <td>{{ attachment.uploaded_by.get_full_name|default:attachment.uploaded_by.username }}</td>
+                                    <td>{{ attachment.uploaded_at|date:"M d, Y, h:i a" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-muted">No attachments yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- History -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header">
+            <h5 class="mb-0">History</h5>
+        </div>
+        <div class="card-body">
+            {% if ticket.history.all %}
+                <div class="timeline">
+                    {% for history in ticket.history.all %}
+                        <div class="timeline-item pb-3">
+                            <div class="timeline-marker"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-heading">
+                                    {{ history.changed_by.get_full_name|default:history.changed_by.username }} 
+                                    changed {{ history.field_name }}
+                                </h6>
+                                <p class="timeline-date text-muted">{{ history.changed_at|date:"M d, Y, h:i a" }}</p>
+                                <div class="d-flex">
+                                    <div class="me-3">
+                                        <div class="text-muted small">From:</div>
+                                        <div>{{ history.old_value|default:"--" }}</div>
+                                    </div>
+                                    <div>
+                                        <div class="text-muted small">To:</div>
+                                        <div>{{ history.new_value }}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">No history yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Comments -->
+    <div class="card shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Comments</h5>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Comment sort options">
+                <button type="button" class="btn btn-outline-secondary active" id="sort-oldest-first">Oldest First</button>
+                <button type="button" class="btn btn-outline-secondary" id="sort-newest-first">Newest First</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mb-4">
+                <form id="comment-form" action="{% url 'add-comment' ticket.id %}" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ comment_form.content.label_tag }}
+                        {{ comment_form.content }}
+                        {% if comment_form.content.errors %}
+                            <div class="invalid-feedback d-block">{{ comment_form.content.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <button type="submit" class="btn btn-primary">Add Comment</button>
+                </form>
+            </div>
+
+            <div id="comments-section">
+                {% if ticket.comments.all %}
+                    {% for comment in ticket.comments.all %}
+                        <div class="comment-item card mb-3" data-timestamp="{{ comment.created_at|date:'U' }}">
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>{{ comment.author.get_full_name|default:comment.author.username }}</strong>
+                                </div>
+                                <div class="text-muted small">
+                                    {{ comment.created_at|date:"M d, Y, h:i a" }}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                {{ comment.content|linebreaks }}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No comments yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .timeline-item {
+        position: relative;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        left: -1.5rem;
+        width: 15px;
+        height: 15px;
+        border-radius: 50%;
+        background-color: #007bff;
+        margin-top: 0.25rem;
+    }
+    
+    .timeline-content {
+        border-left: 1px solid #dee2e6;
+        padding-left: 1.5rem;
+        margin-left: -0.75rem;
+    }
+    
+    .status-badge, .priority-badge {
+        color: white;
+    }
+    
+    .status-button {
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Apply colors to status and priority badges from data attributes
+        document.querySelectorAll('.status-badge').forEach(el => {
+            el.style.backgroundColor = el.getAttribute('data-color');
+        });
+        
+        document.querySelectorAll('.priority-badge').forEach(el => {
+            el.style.backgroundColor = el.getAttribute('data-color');
+        });
+        
+        document.querySelectorAll('.status-button').forEach(el => {
+            el.style.backgroundColor = el.getAttribute('data-color');
+        });
+    
+        // Comment sorting functionality
+        const commentsSection = document.getElementById('comments-section');
+        const sortOldestFirstBtn = document.getElementById('sort-oldest-first');
+        const sortNewestFirstBtn = document.getElementById('sort-newest-first');
+        
+        function sortComments(order) {
+            const comments = Array.from(commentsSection.querySelectorAll('.comment-item'));
+            if (comments.length <= 1) return; // No need to sort if 0 or 1 comment
+            
+            comments.sort((a, b) => {
+                const timeA = parseInt(a.getAttribute('data-timestamp'));
+                const timeB = parseInt(b.getAttribute('data-timestamp'));
+                return order === 'asc' ? timeA - timeB : timeB - timeA;
+            });
+            
+            // Remove all comments from DOM
+            comments.forEach(comment => comment.remove());
+            
+            // Append them back in the sorted order
+            comments.forEach(comment => commentsSection.appendChild(comment));
+        }
+        
+        if (sortOldestFirstBtn && sortNewestFirstBtn) {
+            sortOldestFirstBtn.addEventListener('click', function() {
+                sortComments('asc');
+                sortOldestFirstBtn.classList.add('active');
+                sortNewestFirstBtn.classList.remove('active');
+            });
+            
+            sortNewestFirstBtn.addEventListener('click', function() {
+                sortComments('desc');
+                sortNewestFirstBtn.classList.add('active');
+                sortOldestFirstBtn.classList.remove('active');
+            });
+        }
+    
+        // Add AJAX comment submission
+        const commentForm = document.getElementById('comment-form');
+        
+        if (commentForm) {
+            commentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                
+                fetch(this.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Clear form
+                        document.querySelector('#id_content').value = '';
+                        
+                        // Add new comment to the page
+                        const commentSection = document.getElementById('comments-section');
+                        const noCommentsMsg = commentSection.querySelector('p.text-muted');
+                        
+                        if (noCommentsMsg) {
+                            noCommentsMsg.remove();
+                        }
+                        
+                        // Create timestamp for sorting
+                        const now = Math.floor(Date.now() / 1000);
+                        
+                        const newComment = document.createElement('div');
+                        newComment.className = 'comment-item card mb-3';
+                        newComment.setAttribute('data-timestamp', now.toString());
+                        newComment.innerHTML = `
+                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>${data.comment.author}</strong>
+                                </div>
+                                <div class="text-muted small">
+                                    ${data.comment.created_at}
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                ${data.comment.content.replace(/\n/g, '<br>')}
+                            </div>
+                        `;
+                        
+                        // Insert based on current sort order
+                        if (sortNewestFirstBtn.classList.contains('active')) {
+                            commentSection.prepend(newComment);
+                        } else {
+                            commentSection.appendChild(newComment);
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                });
+            });
+        }
+    });
+</script>
+{% endblock %} 

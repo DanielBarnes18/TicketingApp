@@ -1,0 +1,32 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Logged Out{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-body text-center py-5">
+                    <div class="mb-4">
+                        <span class="display-1 text-primary">
+                            <i class="bi bi-box-arrow-right"></i>
+                        </span>
+                    </div>
+                    <h2 class="mb-3">You Have Been Logged Out</h2>
+                    <p class="mb-4">Thanks for using our ticketing system. You have been successfully logged out.</p>
+                    <div class="d-grid gap-2 col-6 mx-auto">
+                        <a href="{% url 'login' %}" class="btn btn-primary">
+                            <i class="bi bi-box-arrow-in-right"></i> Log In Again
+                        </a>
+                        <a href="{% url 'register' %}" class="btn btn-outline-secondary">
+                            <i class="bi bi-person-plus"></i> Create New Account
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
